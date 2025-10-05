@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniShop • Vanilla JS E‑commerce</title>
+  <style>
+    /* ===== CSS RESET ===== */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    img { max-width: 100%; display: block; }
+    button, input, select { font: inherit; }
+
+    /* ===== THEME ===== */
+    :root{
+      --bg: #0f172a;           /* slate-900 */
+      --panel: #111827;        /* gray-900 */
+      --muted: #94a3b8;        /* slate-400 */
+      --text: #e5e7eb;         /* gray-200 */
+      --brand: #22c55e;        /* green-500 */
+      --brand-600: #16a34a;    /* green-600 */
+      --danger: #ef4444;       /* red-500 */
+      --card: #0b1220;         /* deep card */
+      --border: #1f2937;       /* gray-800 */
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius-xl: 18px; 
+      --radius-lg: 14px;
+      --radius: 10px; 
+    }
+
+    body { background: radial-gradient(1200px 600px at 10% -20%, #172554 0%, transparent 60%), var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+    /* ===== LAYOUT ===== */
+    .container{ max-width: 1200px; margin: 0 auto; padding: 16px; }
+    header{
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(17,24,39,.9); backdrop-filter: saturate(160%) blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav{ display: grid; grid-template-columns: 180px 1fr auto; gap: 16px; align-items: center; padding: 14px 16px; }
+    .logo{ font-weight: 800; letter-spacing: .3px; }
+    .badge{ background: linear-gradient(135deg, var(--brand), #10b981); padding: 3px 8px; border-radius: 999px; font-size: .72rem; margin-left: 6px; color: #04210f; font-weight: 700; }
+
+    .searchbar{ display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
+    .input, .select{ background: #0b1220; border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 12px 14px; outline: none; }
+    .input:focus, .select:focus{ border-color: #334155; box-shadow: 0 0 0 3px rgba(51,65,85,.35); }
+
+    .cart-btn{ display: inline-flex; align-items: center; gap: 10px; background: var(--brand); color: #052e12; border: none; border-radius: 999px; padding: 10px 14px; font-weight: 800; box-shadow: var(--shadow); cursor: pointer; }
+    .cart-count{ background: #052e12; color: #7cf2aa; border-radius: 999px; padding: 2px 8px; font-size: .8rem; }
+
+    main{ display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 18px 16px 32px; }
+    @media (max-width: 900px){ main{ grid-template-columns: 1fr; } .searchbar{ grid-template-columns: 1fr; } }
+
+    aside{ background: var(--panel); padding: 16px; border-radius: var(--radius-xl); border: 1px solid var(--border); }
+    .filter-title{ margin: 0 0 12px; font-size: .95rem; color: var(--muted); letter-spacing: .4px; }
+    .chip{ display: inline-flex; align-items: center; gap: 8px; background: #0b1220; border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 8px 12px; margin: 6px 6px 0 0; cursor: pointer; }
+    .chip.active{ background: #052e12; border-color: #0a3e1d; color: #88f2ae; }
+
+    .grid{ display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .col-3{ grid-column: span 3; }
+    @media (max-width: 1200px){ .col-3{ grid-column: span 4; } }
+    @media (max-width: 900px){ .col-3{ grid-column: span 6; } }
+    @media (max-width: 560px){ .col-3{ grid-column: span 12; } }
+
+    .card{ position: relative; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00)); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow); transition: transform .2s ease, box-shadow .2s ease; }
+    .card:hover{ transform: translateY(-2px); box-shadow: 0 20px 35px rgba(0,0,0,.45); }
+    .thumb{ aspect-ratio: 4/3; object-fit: cover; background: #0b1220; }
+    .card-body{ padding: 12px 14px 14px; display: grid; gap: 8px; }
+    .title{ font-size: .98rem; margin: 0; line-height: 1.3; }
+    .price{ font-weight: 800; letter-spacing: .3px; }
+    .meta{ color: var(--muted); font-size: .86rem; }
+    .actions{ display: flex; gap: 10px; align-items: center; }
+    .btn{ padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border); background: #0b1220; color: var(--text); cursor: pointer; }
+    .btn.primary{ background: var(--brand); color: #052e12; border-color: #0a3e1d; font-weight: 800; }
+    .qty{ display: inline-flex; gap: 8px; align-items: center; }
+
+    /* ===== CART DRAWER ===== */
+    .drawer{ position: fixed; right: 0; top: 0; width: 360px; max-width: 90vw; height: 100dvh; background: var(--panel); border-left: 1px solid var(--border); transform: translateX(100%); transition: transform .25s ease; z-index: 60; display: grid; grid-template-rows: auto 1fr auto; }
+    .drawer.open{ transform: translateX(0%); }
+    .drawer header{ display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border); background: transparent; position: sticky; top: 0; }
+    .drawer .items{ overflow: auto; padding: 12px 16px; display: grid; gap: 12px; }
+    .cart-item{ display: grid; grid-template-columns: 72px 1fr auto; gap: 10px; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; background: #0b1220; }
+    .cart-item h4{ margin: 0 0 4px; font-size: .95rem; }
+    .cart-item .muted{ color: var(--muted); font-size: .85rem; }
+    .cart-footer{ padding: 16px; border-top: 1px solid var(--border); display: grid; gap: 12px; background: linear-gradient(180deg, rgba(255,255,255,.02), transparent); }
+    .row{ display: flex; align-items: center; justify-content: space-between; }
+
+    .empty{ text-align: center; color: var(--muted); padding: 24px; }
+
+    /* ===== MODAL ===== */
+    .backdrop{ position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; place-items: center; z-index: 70; }
+    .backdrop.open{ display: grid; }
+    .modal{ width: min(560px, 92vw); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+    .modal header{ padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .modal .content{ padding: 16px; display: grid; gap: 12px; }
+    .grid-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px){ .grid-2{ grid-template-columns: 1fr; } }
+    .modal .actions{ padding: 0 16px 16px; display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ===== SMALL UTILS ===== */
+    .pill{ padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; }
+    .strike{ text-decoration: line-through; opacity: .7; }
+    .sr-only{ position: absolute; left: -9999px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav container">
+      <div class="logo">MiniShop <span class="badge">Vanilla JS</span></div>
+      <div class="searchbar">
+        <input id="search" class="input" type="search" placeholder="Search products (min, pro, hoodie, ...)">
+        <select id="sort" class="select" aria-label="Sort products">
+          <option value="popular">Sort: Popular</option>
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="new">Newest</option>
+        </select>
+      </div>
+      <div style="text-align:right">
+        <button id="openCart" class="cart-btn" title="Open cart" aria-haspopup="dialog" aria-controls="cartDrawer">
+          🛒 Cart <span id="cartCount" class="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside>
+      <h3 class="filter-title">Categories</h3>
+      <div id="categories"></div>
+      <hr style="border-color: var(--border); margin: 14px 0; opacity:.4" />
+      <h3 class="filter-title">Price</h3>
+      <div style="display:grid; gap:10px">
+        <label>Min <input id="minPrice" class="input" type="number" placeholder="0" min="0" step="1"></label>
+        <label>Max <input id="maxPrice" class="input" type="number" placeholder="9999" min="0" step="1"></label>
+        <button id="priceApply" class="btn">Apply</button>
+      </div>
+    </aside>
+
+    <section>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+
+  <!-- CART DRAWER -->
+  <aside id="cartDrawer" class="drawer" role="dialog" aria-label="Shopping cart" aria-modal="true">
+    <header>
+      <strong>Your Cart</strong>
+      <button id="closeCart" class="btn">✕</button>
+    </header>
+    <div id="cartItems" class="items"></div>
+    <div class="cart-footer">
+      <div class="row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+      <div class="row"><span>Shipping</span><span class="pill">Calculated at checkout</span></div>
+      <button id="checkout" class="btn primary">Proceed to Checkout</button>
+    </div>
+  </aside>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkoutModal" class="backdrop" role="dialog" aria-modal="true" aria-label="Checkout form">
+    <div class="modal">
+      <header><strong>Checkout</strong></header>
+      <div class="content">
+        <div class="grid-2">
+          <label>Full Name<input id="name" class="input" placeholder="Jane Doe"/></label>
+          <label>Email<input id="email" class="input" type="email" placeholder="jane@example.com"/></label>
+          <label>Address<input id="addr" class="input" placeholder="123 Street, City"/></label>
+          <label>City<input id="city" class="input" placeholder="Dhaka"/></label>
+          <label>Zip<input id="zip" class="input" placeholder="1207"/></label>
+          <label>Country<input id="country" class="input" placeholder="Bangladesh"/></label>
+        </div>
+        <p class="meta">Demo only — no payment integration. Use this as a frontend starter then hook to your backend or a payment SDK (Stripe, SSLCommerz, etc.).</p>
+      </div>
+      <div class="actions">
+        <button id="cancelCheckout" class="btn">Cancel</button>
+        <button id="placeOrder" class="btn primary">Place Order</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== DATA (replace with API later) ======
+    const PRODUCTS = [
+      {id:1, title:"Hoodie – Nova Green", price:39, category:"Apparel", rating:4.7, stock:24, created:"2025-09-10", img:"https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=800&auto=format&fit=crop"},
+      {id:2, title:"Wireless Earbuds Pro", price:89, category:"Electronics", rating:4.4, stock:12, created:"2025-09-25", img:"https://images.unsplash.com/photo-1518443877572-87d21938b85b?q=80&w=800&auto=format&fit=crop"},
+      {id:3, title:"Laptop Stand – Aero", price:29, category:"Accessories", rating:4.3, stock:40, created:"2025-08-21", img:"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop"},
+      {id:4, title:"Smartwatch Lite", price:129, category:"Electronics", rating:4.5, stock:8, created:"2025-09-30", img:"https://images.unsplash.com/photo-1511735111819-9a3f7709049c?q=80&w=800&auto=format&fit=crop"},
+      {id:5, title:"Sneakers – CloudRun", price:79, category:"Footwear", rating:4.2, stock:20, created:"2025-07-04", img:"https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800&auto=format&fit=crop"},
+      {id:6, title:"Backpack – Summit 20L", price:59, category:"Accessories", rating:4.6, stock:16, created:"2025-06-14", img:"https://images.unsplash.com/photo-1460353581641-37baddab0fa2?q=80&w=800&auto=format&fit=crop"},
+      {id:7, title:"T‑Shirt – Minimal", price:22, category:"Apparel", rating:4.1, stock:34, created:"2025-09-02", img:"https://images.unsplash.com/photo-1520975922284-9d2363b526cc?q=80&w=800&auto=format&fit=crop"},
+      {id:8, title:"DSLR Camera Strap", price:19, category:"Accessories", rating:4.0, stock:50, created:"2025-08-11", img:"https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800&auto=format&fit=crop"},
+      {id:9, title:"Running Shorts", price:27, category:"Apparel", rating:4.3, stock:25, created:"2025-07-19", img:"https://images.unsplash.com/photo-1503342452485-86ff0a4b67a0?q=80&w=800&auto=format&fit=crop"},
+      {id:10,title:"Bluetooth Speaker Mini", price:49, category:"Electronics", rating:4.4, stock:22, created:"2025-06-02", img:"https://images.unsplash.com/photo-1518448317822-0f1b028c1e0e?q=80&w=800&auto=format&fit=crop"},
+      {id:11,title:"Trail Shoes – GripX", price:92, category:"Footwear", rating:4.5, stock:9, created:"2025-09-18", img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop"},
+      {id:12,title:"Cap – Classic", price:16, category:"Accessories", rating:4.0, stock:41, created:"2025-05-09", img:"https://images.unsplash.com/photo-1485463611174-f302f6a5c1c9?q=80&w=800&auto=format&fit=crop"}
+    ];
+
+    // ====== STATE ======
+    const state = {
+      q: "",
+      sort: "popular",
+      category: "All",
+      min: null,
+      max: null,
+      cart: /** @type {Record<number, number>} */(JSON.parse(localStorage.getItem('cart')||'{}')),
+    };
+
+    // ====== HELPERS ======
+    const by = sel => document.querySelector(sel);
+    const fmt = n => `$${n.toFixed(2)}`;
+    const saveCart = () => localStorage.setItem('cart', JSON.stringify(state.cart));
+
+    const categories = ["All", ...Array.from(new Set(PRODUCTS.map(p=>p.category)))];
+
+    // ====== RENDER CATEGORIES ======
+    const catWrap = by('#categories');
+    function renderCategories(){
+      catWrap.innerHTML = "";
+      categories.forEach(cat =>{
+        const c = document.createElement('button');
+        c.className = 'chip' + (state.category===cat?' active':'');
+        c.textContent = cat;
+        c.onclick = () => { state.category = cat; renderProducts(); highlightCats(); }
+        catWrap.appendChild(c);
+      })
+    }
+    function highlightCats(){
+      Array.from(catWrap.children).forEach(btn=>{
+        btn.classList.toggle('active', btn.textContent===state.category);
+      });
+    }
+
+    // ====== FILTER + SORT ======
+    function getFiltered(){
+      let list = PRODUCTS.filter(p =>
+        (!state.q || p.title.toLowerCase().includes(state.q)) &&
+        (state.category==='All' || p.category===state.category) &&
+        (state.min==null || p.price >= state.min) &&
+        (state.max==null || p.price <= state.max)
+      );
+      switch(state.sort){
+        case 'price_asc': list.sort((a,b)=>a.price-b.price); break;
+        case 'price_desc': list.sort((a,b)=>b.price-a.price); break;
+        case 'new': list.sort((a,b)=> new Date(b.created)-new Date(a.created)); break;
+        default: list.sort((a,b)=> b.rating-a.rating); // popular by rating
+      }
+      return list;
+    }
+
+    // ====== RENDER PRODUCTS ======
+    const grid = by('#grid');
+    function renderProducts(){
+      const list = getFiltered();
+      grid.innerHTML = list.map(p=>`
+        <article class="card col-3">
+          <img class="thumb" src="${p.img}" alt="${p.title}">
+          <div class="card-body">
+            <h3 class="title">${p.title}</h3>
+            <div class="meta">${p.category} • ⭐ ${p.rating.toFixed(1)}</div>
+            <div class="row">
+              <div class="price">${fmt(p.price)}</div>
+              <div class="pill">${p.stock>10? 'In stock' : `${p.stock} left`}</div>
+            </div>
+            <div class="actions">
+              <button class="btn" onclick="decrement(${p.id})">−</button>
+              <div class="qty"><span id="qty-${p.id}">${state.cart[p.id]||0}</span></div>
+              <button class="btn" onclick="increment(${p.id})">＋</button>
+              <button class="btn primary" onclick="addToCart(${p.id})">Add to cart</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+      updateCartCount();
+    }
+
+    // ====== CART ======
+    function addToCart(id){
+      state.cart[id] = (state.cart[id]||0) + 1; saveCart(); updateQty(id); renderCart();
+    }
+    function increment(id){ state.cart[id] = Math.min((state.cart[id]||0)+1, 99); saveCart(); updateQty(id); renderCart(); }
+    function decrement(id){ state.cart[id] = Math.max((state.cart[id]||0)-1, 0); if(state.cart[id]===0) delete state.cart[id]; saveCart(); updateQty(id); renderCart(); }
+    function removeItem(id){ delete state.cart[id]; saveCart(); updateQty(id); renderCart(); }
+    function updateQty(id){ const el = by('#qty-'+id); if(el) el.textContent = state.cart[id]||0; updateCartCount(); }
+
+    const cartItemsEl = by('#cartItems');
+    const subtotalEl = by('#subtotal');
+    function renderCart(){
+      const entries = Object.entries(state.cart);
+      if(entries.length===0){
+        cartItemsEl.innerHTML = `<div class="empty">Your cart is empty.</div>`;
+        subtotalEl.textContent = fmt(0);
+        return;
+      }
+      let subtotal = 0;
+      cartItemsEl.innerHTML = entries.map(([id,qty])=>{
+        const p = PRODUCTS.find(x=>x.id==id); const q = Number(qty)||0; const line = p.price*q; subtotal += line;
+        return `
+          <div class="cart-item">
+            <img src="${p.img}" alt="${p.title}">
+            <div>
+              <h4>${p.title}</h4>
+              <div class="muted">${p.category} • ${fmt(p.price)} × ${q}</div>
+              <div class="actions" style="margin-top:6px">
+                <button class="btn" onclick="decrement(${p.id})">−</button>
+                <span style="min-width:24px;text-align:center">${q}</span>
+                <button class="btn" onclick="increment(${p.id})">＋</button>
+                <button class="btn" style="margin-left:auto;color:#ffd1d1;border-color:#3f1f1f" onclick="removeItem(${p.id})">Remove</button>
+              </div>
+            </div>
+            <strong>${fmt(line)}</strong>
+          </div>`;
+      }).join('');
+      subtotalEl.textContent = fmt(subtotal);
+    }
+
+    function updateCartCount(){
+      const c = Object.values(state.cart).reduce((a,b)=>a+Number(b||0),0);
+      by('#cartCount').textContent = c;
+    }
+
+    // ====== CART DRAWER TOGGLE ======
+    const drawer = by('#cartDrawer');
+    by('#openCart').onclick = () => { drawer.classList.add('open'); renderCart(); };
+    by('#closeCart').onclick = () => { drawer.classList.remove('open'); };
+
+    // ====== SEARCH/SORT/PRICE ======
+    by('#search').addEventListener('input', e=>{ state.q = e.target.value.trim().toLowerCase(); renderProducts(); });
+    by('#sort').addEventListener('change', e=>{ state.sort = e.target.value; renderProducts(); });
+    by('#priceApply').onclick = () => {
+      const min = Number(by('#minPrice').value); const max = Number(by('#maxPrice').value);
+      state.min = isNaN(min)? null : min; state.max = isNaN(max)? null : max; renderProducts();
+    };
+
+    // ====== CHECKOUT ======
+    const modal = by('#checkoutModal');
+    by('#checkout').onclick = ()=> modal.classList.add('open');
+    by('#cancelCheckout').onclick = ()=> modal.classList.remove('open');
+    by('#placeOrder').onclick = ()=>{
+      const name = by('#name').value.trim();
+      if(!name){ alert('Please enter your name.'); return; }
+      const order = { id: Math.random().toString(36).slice(2,10).toUpperCase(), items: state.cart, placedAt: new Date().toISOString() };
+      alert(`Thanks, ${name}! Your order #${order.id} was placed. (Demo)`);
+      state.cart = {}; saveCart(); renderProducts(); renderCart(); modal.classList.remove('open'); drawer.classList.remove('open');
+    };
+
+    // ====== INIT ======
+    renderCategories();
+    renderProducts();
+
+    // expose a few for inline handlers
+    window.addToCart = addToCart;
+    window.increment = increment;
+    window.decrement = decrement;
+    window.removeItem = removeItem;
+  </script>
+</body>
+</html>
